@@ -1,0 +1,51 @@
+pedigree,member,raza,Año._de_colecta,Longitud,Latitud,Altitud,Sanchezetal_grupo,Categ.Altitud
+1,1_33,Conejo,1946,-100.69796,18.300591,210,Tropicales precoces,1
+2,13_1861,Tehua,1952,-91.421015,14.609292,792,Maduracion tardia,2
+3,7_802,Zapalote Chico,1961,-92.659404,15.33288,100,Tropicales precoces,1
+4,19_10473,Zapalote Chico,1973,-93.89,16.23,100,Tropicales precoces,1
+5,2_44,Conejo,1947,-100.425,19.0125,480,Tropicales precoces,1
+6,14_2166,Comiteco,1946,-92.48333333,15.13333333,100,Maduracion tardia,1
+7,8_805,Comiteco,1961,-93.751723,16.454601,2241,Maduracion tardia,5
+8,20_13297,Tehua,1972,-93.1,16.96,820,Maduracion tardia,2
+9,3_68,Conejo,1960,-101.329643,17.700966,180,Tropicales precoces,1
+10,15_2270,Zapalote Chico,1946,-94.6167,16.5667,100,Tropicales precoces,1
+11,9_1058,Comiteco,1961,-91.93333333,16.13333333,1400,Maduracion tardia,3
+12,21_16210,Zapalote Grande,1972,-93.7667,16.0833,41,Dentados tropicales,1
+13,4_137,Zapalote Grande,1958,-96.466168,16.941239,1000,Dentados tropicales,2
+14,16_2601,Zapalote Grande,1946,-93.7877,16.0969,31,Dentados tropicales,1
+15,10_1222,Zapalote Grande,1985,,,,Dentados tropicales,1
+16,22_23130,Zapalote Chico,1998,-95.811,16.4526,681,Tropicales precoces,2
+17,5_168,Conejo,1952,-103.661841,18.6781,250,Tropicales precoces,1
+18,17_10037,Comiteco,1952,-90.629474,14.545516,1943,Maduracion tardia,4
+19,11_1773,Zapalote Grande,1946,-92.6167,15.2833,100,Dentados tropicales,1
+20,23_23142,Zapalote Chico,1998,-95.2,16.5833,255,Tropicales precoces,1
+21,6_777,Tehua,1944,-92.711852,15.865208,1400,Maduracion tardia,3
+22,18_10463,Zapalote Chico,1972,-92.1,15.7,700,Tropicales precoces,2
+23,12_1849,Tehua,1953,-89.66667,15.4,122,Maduracion tardia,1
+24,24_25020,Zapalote Grande,1976,-94.18333333,16.28333333,50,Dentados tropicales,1
+25,25_23217,Zapalote Grande,1962,-95.45,16.4458,820,Dentados tropicales,2
+26,37_30052,Comiteco,2010,-92.5,16.8,2008,Maduracion tardia,5
+27,31_25784,Tehua,1972,-92.6333,17.2,730,Maduracion tardia,2
+29,26_23547,Zapalote Chico,1999,-94.1833333,16.28333333,8,Tropicales precoces,1
+31,32_26872,Comiteco,1972,-92.0389,16.9056,900,Maduracion tardia,2
+33,27_23552,Zapalote Grande,1999,-94.18333333,16.28333333,8,Dentados tropicales,1
+35,33_29890,Comiteco,2010,-92.706875,16.756641,1510,Maduracion tardia,4
+37,28_23597,Zapalote Chico,1999,-95.386637,16.092671,5,Tropicales precoces,1
+39,34_29952,Zapalote Chico,2009,-93.8,16.67,573,Tropicales precoces,2
+41,29_25029,Zapalote Chico,1976,-95,16.2,50,Tropicales precoces,1
+43,35_29971,Comiteco,2010,-92.5,15.58333333,1955,Maduracion tardia,4
+45,30_23861,Tehua,1947,-92.05,16.11666667,1604,Maduracion tardia,4
+47,36_30008,Comiteco,2010,-92.722222,16.759722,1631,Maduracion tardia,4
+10,maiz_82,Comiteco,2009,-91.97702778,16.19611111,1553,Maduracion tardia,4
+13,maiz_21,Conejo,2008,-98.74311111,17.78013889,1312,Tropicales precoces,3
+31,maiz_80,Comiteco,2009,-93.09966667,16.62313889,455,Maduracion tardia,1
+50,maiz_23,Conejo,2008,-98.74188889,17.77797222,1685,Tropicales precoces,4
+90,maiz_124,Tehua,2009,-93.206,17.19680556,1545,Maduracion tardia,4
+93,maiz_125,Tehua,2009,-93.17527778,17.21630556,1525,Maduracion tardia,4
+108,maiz_142,Zapalote Chico,2009,-93.00194444,16.36402778,654,Tropicales precoces,2
+112,maiz_144,Zapalote Grande,2009,-93.00194444,16.36402778,654,Dentados tropicales,2
+126,maiz_150,Comiteco,2009,-92.02008333,16.24877778,1550,Maduracion tardia,4
+130,maiz_152,Conejo,2008,-98.68102778,17.88563889,1493,Tropicales precoces,3
+148,maiz_186,Comiteco,2009,-91.97488889,16.23313889,1550,Maduracion tardia,4
+157,maiz_182,Conejo,2008,-98.65641667,17.74525,1402,Tropicales precoces,3
+161,maiz_183,Comiteco,2009,-91.93747222,16.19525,1550,Maduracion tardia,4
