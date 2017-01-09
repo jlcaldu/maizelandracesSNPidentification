@@ -1,0 +1,281 @@
+---
+title: "Mexican maize landraces can be distinguished by few SNPs, but broad genomic diversity related to environmental and bio-cultural factors underlies their phenotypic diversity"
+output: html_document
+author: Caldú-Primo JL., Wegier A., Mastretta A., Piñero D.
+---
+
+
+
+
+###Set working directories and relevant libraries. 
+
+SNP data should be saved in your working directory.
+
+```{r, echo=F}
+```
+```{r}
+WD <- "/home/user/Escritorio/Biologia/TESIS/Datos_Maiz/DATA/"
+
+## Load required libraries
+library (adegenet)
+library(poppr)
+library(ape)
+library(NMF)
+library(snpStats)
+library(ggplot2)
+library(gdsfmt)
+library(SNPRelate)
+library(grid)
+library(gridExtra)
+
+## Load SNP data
+bed<-paste(WD,"/maiz_listo.bed",sep="")
+bim<-paste(WD,"/maiz_listo.bim",sep="")
+fam<-paste(WD,"/maiz_listo.fam",sep="")
+ped<-paste(WD,"/maiz_listo.ped",sep="")
+raw<-paste(WD,"/maiz_listo.raw",sep="")
+map <-paste(WD, "/maiz_listo.map",sep="")
+
+## Load sample data
+subject.support<-read.csv(paste(WD,"/subject.support.csv",sep=""),header=TRUE) 
+# Load information about domestication and improvement SNPs
+snpsextract<-read.csv(paste(WD,"/snp.support.csv",sep=""),header=TRUE)
+```
+
+### Integrate data
+
+Prepare SNP data for its handling with SNPStats, SNPRelate and Adegenet packages
+
+```{r}
+## Integrate SNP data for SNPStats package handling
+maiz<-read.plink(bed,bim,fam)
+snps<-maiz$genotype
+snp.support<-maiz$map
+## Integrate SNP data for Adegenet package handling
+maizgl <- read.PLINK(file=raw,mapfile=map)
+## Remove duplicated SNPs
+glmatrix <- as.matrix(maizgl)
+glmatrix <- glmatrix[,-grep("HET",colnames(glmatrix))]
+maizgl<-as.genlight(glmatrix)
+
+## Integrate data for SNPRelate package handling
+snpgdsBED2GDS(bed,fam,bim,out.gdsfn ="maiz.listo.gds")
+genofile <- snpgdsOpen("maiz.listo.gds")
+
+snpset <- snpgdsLDpruning(genofile,ld.threshold = 1, autosome.only=F) ## Remove monomorphic SNPs
+snpset.id <- unlist(snpset) #get all selected snp id
+
+```
+
+### Define the SNP sets: 
+*   Domestication and improvement SNPs -> Information about the domestication and improvement SNPs has already been loaded in the snpsextract table. They only have to be extracted from the SNP matrix. 
+```{r}
+## Subset SNP matrix keeping only Domestication and improvement SNPs
+glmatrixdom <- glmatrix[, pmatch(snpsextract[,2],colnames(glmatrix))]
+glmatrixdom <- glmatrixdom[, colSums(is.na(glmatrixdom)) != nrow(glmatrixdom)]
+```
+
+*   High $F_{ST}$  SNPs -> Calculate the $F_{ST}$  index for every SNP among races.
+```{r}
+### Fst measurement for every SNP among races, keeping SNP name and removing NAs
+fraza <- Fst (snps,subject.support[,'raza'])
+names(fraza$Fst)<-colnames(snps)
+fraza$Fst<-fraza$Fst[!is.na(fraza$Fst)]
+
+```
+
+
+    Identify the 1% of SNPs with higher $F_{ST}$  to be extracted from the SNP matrix.
+```{r}
+### function to identify SNPs with an Fst value higher than certain percent treshold. Takes as input a named vector with the Fst value for SNPs and a givena treshold. 
+fst.alta <- function (snpsfst, percent){  
+  alta <- quantile(snpsfst,probs=percent) ## get the Fst value corresponding to the treshold percent
+  fst.snp <- data.frame (SNPs=c(1:length(snpsfst[snpsfst>=0])), Fst = snpsfst[snpsfst>=0], Dif = snpsfst[snpsfst>=0]>alta) # data frame with all the SNPs with a column (Dif) indicating if they have Fst above or below the treshold
+  snps.alta <- snpsfst[snpsfst>alta] # names of SNPs above the Fst treshold 
+  return(list(Fst.value=alta, snp.info=snps.alta,fst.snp=fst.snp))
+}
+#########################################################################3
+## Identify high Fst SNPs among races
+raza.99<-fst.alta(fraza$Fst,.99)
+snps_Fstalta<-data.frame(names(raza.99$snp.info))
+###########################################################################
+### Subset SNP matrix keeping only landrace high Fst  SNPs
+snpsfst99 <- names(raza.99$snp.info)
+glmatrixfst <- glmatrix[, pmatch(snpsfst99, colnames(glmatrix))]
+glmatrixfst <- glmatrixfst[, colSums(is.na(glmatrixfst)) != nrow(glmatrixfst)]
+```
+
+### PCA of the three SNP sets
+```{r}
+#### Function to create PCA using a given set SNPs and grouping of samples.
+PCA <- function(genofile, grouping, snps=snpset.id){ 
+  used.snps <- snps[match(snpset.id,snps)]
+  used.snps <- used.snps[complete.cases(used.snps)]
+  pca <- snpgdsPCA (genofile, snp.id=used.snps)
+  
+  pc.percent<- pca$varprop*100
+  
+  col<-c("red","gold","green3","dodgerblue","magenta4")
+  sample.id <- read.gdsn (index.gdsn(genofile, "sample.id"))
+  pop_code <- as.vector (subject.support[,grouping])        
+  tab <- data.frame (sample.id=pca$sample.id,
+                     Landrace=factor(pop_code)[match(pca$sample.id, sample.id)],
+                     PC1 = pca$eigenvect[,1], PC2 = pca$eigenvect[,2],
+                     stringsAsFactors = FALSE)
+  plot <- ggplot(tab, aes(x=PC2, y=PC1, colour=Landrace)) + geom_point(shape=19)+ scale_colour_manual(values = col)+theme_bw()
+  return(list(PCA=pca,PCpercent=pc.percent,table=tab,grafica=plot,snps=used.snps))
+}
+##############################################################
+snpsdom <- as.character(snpsextract[,2])
+snpsdom <- snpsdom[match(snpset.id,snpsdom)] ## select the domestication snps present in the snpset
+snpsdom <- snpsdom[complete.cases(snpsdom)]
+
+snpsfst99 <- names(raza.99$snp.info) ## names of high Fst SNPs
+
+pca.all.raza <- PCA(genofile=genofile, snps = snpset.id, grouping = 'raza') # PCA with all SNPs
+pca.dom.raza <- PCA(genofile=genofile, snps = snpsdom, grouping = 'raza')# PCA with domestication and improvement SNPs
+pca.fst99.raza <- PCA(genofile=genofile, snps = snpsfst99, grouping = 'raza') # PCA with high Fst SNPs
+
+# PCA graphs
+all<-pca.all.raza$grafica+ theme(legend.position="", plot.title = element_text(family="Arial", face="bold",size=11))+ggtitle("All SNPs")
+dom<-pca.dom.raza$grafica+ theme(legend.position="", plot.title = element_text(family="Arial", face="bold",size=11))+ggtitle(" Domestication and improvement SNPs")
+fst<-pca.fst99.raza$grafica +ggtitle("High Fst SNPs")+theme(legend.position="", plot.title = element_text(family="Arial", face="bold",size=11))
+
+g_legend<-function(a.gplot){
+    tmp <- ggplot_gtable(ggplot_build(a.gplot))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    legend <- tmp$grobs[[leg]]
+    legend
+}
+
+legend <- g_legend(pca.fst99.raza$grafica)
+
+grid.arrange(all,dom,fst,legend,ncol=2,nrow=2)
+```
+
+## Clustering analysis
+
+k-means clustering using the three SNP sets to analyze which set better recovers the landrace groups.
+
+```{r}
+######### Clustering
+gldom <- as.genlight(glmatrixdom)
+glfst <- as.genlight(glmatrixfst,centers=3)
+
+set.seed(12)
+allclusters <- find.clusters.genlight(maizgl,n.pca = 48)
+domclusters <- find.clusters.genlight(gldom,n.pca = 48)
+fstclusters <- find.clusters.genlight(glfst,n.pca = 48)
+```
+
+The set of all SNPs and domestication and improvement SNPs result in the best model cluster consisting of only one group of samples. The high $F_{ST}$  SNPs set is the only one that generates clusters from k-means modeling, it creates three clusters:
+
+```{r}
+fstclusters <- find.clusters.genlight(glfst,n.pca = 48, n.clust = 3)
+tab<-data.frame(Sample=rownames(glmatrix),Cluster=fstclusters$grp, Landrace=subject.support[,'raza'])
+tab<-tab[order(tab[,'Cluster'], tab[,'Landrace']),]
+tab
+```
+
+The three clusters are: 
+  * 1 =Zapalote Chico  + (25_23217, Zapalote Grande)
+  + 2 = Conejo + Zapalote Grande + (maiz_142, Zapalote Grande)
+  + 3 = Tehua + Comiteco
+
+
+## DAPC with high Fst SNPs
+
+Generate the DAPC classification model using the high $F_{ST}$ SNPs set and the landrace assignment
+```{r}
+######### DAPC
+maizclusters <- as.numeric(as.factor(subject.support[,'raza'])) ## define groups by landrace analysis
+names(maizclusters)<-rownames(glmatrix)
+maizclusters<-as.factor(maizclusters)
+
+dapc.fst <- dapc.genlight(glfst,maizclusters,n.pca=4,n.da=2)
+temp <- optim.a.score(dapc.fst) # analysis to select the correct number of PCA to use in the DAPC 
+
+col<-c("red","gold","green3","dodgerblue","magenta4")
+scatter(dapc.fst,col=col ,bg="white",cstar=1,scree.da=FALSE, solid=.7, cex=1.5, clab=0, leg=TRUE, txt.leg=c("Comiteco","Conejo","Tehua", "Zapalote Chico", "Zapalote Grande"),posi.leg = "topleft",cleg=.8,cellipse=1)
+
+colnames(dapc.fst$posterior)<-c("Comiteco","Conejo","Tehua","Z.Chico","Z.Grande")
+dapc.fst$posterior<-cbind(dapc.fst$posterior, subject.support[,"raza"]) ## order samples by landrace for plotting
+dapc.fst$posterior<-dapc.fst$posterior[order(dapc.fst$posterior[,6]),]
+dapc.fst$posterior<-dapc.fst$posterior[,-6]
+
+par(xpd=F)
+assignplot(dapc.fst,cex.lab=.6)
+points(x=sort(as.integer(subject.support[,"raza"])),y=seq(49.5,.5,-1),pch=20) 
+
+compoplot(dapc.fst,lab=rownames(dapc.fst$posterior), txt.leg=levels(subject.support[,"raza"]),cex.names=0.6,posi=1.22)
+```
+
+## Identify landrace informative SNPs
+
+```{r}
+rownames(dapc.fst$var.contr)<-colnames(glmatrixfst)
+
+par(mfrow=c(1,1),mar=c(5.1,4.1,2.1,2.1))
+plot(sort(dapc.fst$var.contr[,"LD1"]),xlab="SNPs",ylab="Loading", main="LD1")
+abline(h=0.0095, col="red")
+loci_x<-loadingplot (dapc.fst$var.contr,threshold = 0.0095, lab.jitter = 1, axis=1,xlab="SNPs",ylab="Loading",main="LD1")
+
+plot(sort(dapc.fst$var.contr[,"LD2"]),xlab="SNPs",ylab="Loading", main="LD2")
+abline(h=0.01464034 , col="red")
+loci_y<-loadingplot (dapc.fst$var.contr,threshold = 0.015, lab.jitter = 1, axis=2,xlab="SNPs",ylab="Loading",main="LD2")
+
+boxplot(data.frame(LD1=dapc.fst$var.contr[,"LD1"],LD2=dapc.fst$var.contr[,"LD2"]))
+lines(x=.5:1.5,y=rep(0.0095,2), col="red")
+lines(x=1.5:2.5,y=rep(0.01173871 ,2), col="red")
+
+```
+
+### Altitude analysis.
+The first step to perform the altitude analysis is to classify the samples according to the altitude in which they were collected. We defined a classification that divides samples in Low/High altitude with an altitudinal treshold of 750 masl, this treshold was defined from our samples. Then for every SNP $F_{ST}$ value between altitude categories is calculated to generate the set of SNPs with altitude high $F_{ST}$ and then aply a DAPC using these SNPs and the altitude classification.  
+```{r}
+## Classify samples according to altitude
+subject.support<-cbind(subject.support,Altoobajo=cut(subject.support[,"Altitud"],breaks<-c(0,750,2241),labels=c("bajo","alto")))
+### Fst measurement for every SNP among altitudinal categories, keeping SNP name and removing NAs
+faltura<-Fst(snps,subject.support[,"Altoobajo"])
+names(faltura$Fst)<-colnames(snps)
+faltura$Fst<-faltura$Fst[!is.na(faltura$Fst)]
+##### Subset SNP matrix keeping only altitude high Fst  SNPs 
+altura.99<-fst.alta(faltura$Fst,.99)
+snpsaltura99 <- names(altura.99$snp.info)
+glmatrixalt <- glmatrix[, pmatch(snpsaltura99, colnames(glmatrix))]
+glmatrixalt <- glmatrixalt[, colSums(is.na(glmatrixalt)) != nrow(glmatrixalt)]
+############################################################################
+## DAPC
+glalt<- as.genlight(glmatrixalt)
+set.seed(2)
+altclusters<-find.clusters.genlight(glalt,n.pca = 48)
+altclusters<-find.clusters.genlight(glalt,n.clust=2,n.pca = 48)
+
+dapc.alt <- dapc.genlight(glalt,altclusters$grp,n.pca=1, n.da=1)
+
+rownames(dapc.alt$posterior)<-make.names(subject.support[,'raza'],unique=TRUE)
+dapc.alt$posterior<- dapc.alt$posterior[order(rownames(dapc.alt$posterior)),]
+colnames(dapc.alt$posterior)<-c("Low","High")
+par(mar=c(5.1, 4.1, 4.1, 2.1),mfrow=c(1,2))
+scatter(dapc.alt, legend=T, txt.leg=c("Low","High"),posi.leg="topleft")
+assignplot(dapc.alt,cex.lab = 0.6,pch=NA)
+points(x=as.integer(subject.support[order(subject.support[,'raza']),"Altoobajo"]),y=seq(49.5,.5,-1),pch=20)
+```
+
+## Identify altitude informative SNPs
+
+```{r}
+rownames(dapc.alt$var.contr) <- colnames(glmatrixalt)
+par(mfrow=c(1,2))
+plot(sort(dapc.alt$var.contr[,"LD1"]),xlab="SNPs",ylab="Loading")
+abline(h=0.012, col="red")
+snpsalt<-loadingplot(dapc.alt$var.contr,threshold = 0.012,lab.jitter=1,xlab="SNPs",ylab="Loading",main="")
+```
+
+### Check for SNPs shared between the landrace and altitude informative SNPs
+```{r}
+sum(snpsalt$var.names%in%loci_x$var.names)
+sum(snpsalt$var.names%in%loci_y$var.names)
+
+snpsalt$var.names[(snpsalt$var.names%in%loci_x$var.names)]
+```
